@@ -8,12 +8,14 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import scala.util.Random
 
+import chisel3.util._
+
 // TODO: Parameterize this test
 class LVTSpec extends AnyFlatSpec with ChiselScalatestTester with Matchers {
 
-  val nRead=4;
+  val nRead=8;
   val mWrite=4;
-  val depth=128;
+  val depth=64;
   val width=32;
 
   behavior of "LVTMultiPortRams"
@@ -42,10 +44,11 @@ class LVTSpec extends AnyFlatSpec with ChiselScalatestTester with Matchers {
         println(s"test cycle ${i}")
 
         // Generate random data
-        val readAddresses  = Random.shuffle(0 to 32).take(4).map(_.U(32.W))
-        val writeAddresses = Random.shuffle(0 to 32).take(4).map(_.U(32.W))
-        val writeData      = Seq.fill(4)(BigInt(32, Random).U(32.W))
-        val writeEnable    = Seq.fill(4)(Random.nextBoolean())
+        val readAddresses  = Seq.fill(nRead)(BigInt(log2Ceil(depth), Random).U(log2Ceil(depth).W))
+
+        val writeAddresses = Random.shuffle(0 to (depth-1)).take(mWrite).map(_.U(log2Ceil(depth).W))
+        val writeData      = Seq.fill(mWrite)(BigInt(width, Random).U(width.W))
+        val writeEnable    = Seq.fill(nRead)(Random.nextBoolean())
 
 
         // Drive DUT inputs

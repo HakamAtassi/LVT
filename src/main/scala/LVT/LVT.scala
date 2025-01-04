@@ -22,8 +22,6 @@ class nRead1Write(n: Int, depth: Int, width: Int) extends Module {
   // all writes tied
   // writes forwarded
 
-
-
   // Create n memories, one for each read port
   val memories = Seq.fill(n)(SyncReadMem(depth, UInt(width.W)))
 
@@ -34,7 +32,7 @@ class nRead1Write(n: Int, depth: Int, width: Int) extends Module {
   }
 
   // output+forward data
-  io.rdData := VecInit(memories.zip(io.rdAddr).map { case (mem, addr) => Mux(io.wrAddr===addr && io.wrEn, RegNext(io.wrData), mem.read(addr))})
+  io.rdData := VecInit(memories.zip(io.rdAddr).map { case (mem, addr) => Mux(RegNext(io.wrAddr===addr && io.wrEn), RegNext(io.wrData), mem.read(addr))})
 }
 
 class nReadmWriteLVT(n: Int, m: Int, depth: Int, width: Int) extends Module {
@@ -90,15 +88,17 @@ class nReadmWriteLVT(n: Int, m: Int, depth: Int, width: Int) extends Module {
   }
 
   // Output Mux: Select data from the appropriate bank for each read port
-  for (i <- 0 until n) {
+
+
+  for (i <- 0 until n) {  // for each output read port
     val selectedBankIndex = LVTTableOut(i)
-    io.rdData(i) := MuxLookup(
-      selectedBankIndex,
-      0.U(width.W), // Default value
-      LVTBanks.zipWithIndex.map { case (bank, index) =>
-        index.U -> bank.io.rdData(i)
+    io.rdData(i) := 0.U
+    for(j <- 0 until m){  // search banks
+      val bank = LVTBanks(j)
+      when(j.U === selectedBankIndex){
+        io.rdData(i) := bank.io.rdData(i) 
       }
-    )
+    }
   }
 
 
